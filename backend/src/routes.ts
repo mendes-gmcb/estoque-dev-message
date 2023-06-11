@@ -211,4 +211,6 @@ app.get('/controls/:userId', async (request) => {
         return productDeleted
     })
 
+    
+
 }
