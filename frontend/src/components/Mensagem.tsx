@@ -1,125 +1,143 @@
 import { useState, useEffect } from 'react';
-import { FiTrash2 } from 'react-icons/fi';
-import { MdShoppingCart, MdLocalMall } from 'react-icons/md';
+import { FiTrash2, FiUpload } from 'react-icons/fi';
+import { AiFillLike, AiFillDislike } from 'react-icons/ai'
+import { useLocation } from 'react-router-dom';
+
 
 type MessageType = {
     id: number,
     title: string,
     content: string,
-    publiched: boolean,
+    published: boolean,
     likesAmount: number,
 }
 
 const Mensagem = () => {
-  const [messages, setMessages] = useState<MessageType[]>([]);
-  const [title, setTitle] = useState<string>('');
-  const [content, setContent] = useState<string>('');
+    const [messages, setMessages] = useState<MessageType[]>([]);
+    const [title, setTitle] = useState<string>('');
+    const [content, setContent] = useState<string>('');
 
-  useEffect(() => {
-    // Exemplo de requisição GET utilizando fetch:
-    fetch('http://localhost:3333/message')
-      .then((response) => response.json())
-      .then((data) => setMessages(data))
-      .catch((error) => {
-        alert(error);
-      });
-  }, []);
+    const location = useLocation();
+    const userId = location.state?.userId || '';
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    
+    useEffect(() => {
+        // Exemplo de requisição GET utilizando fetch:
+        fetch(`http://localhost:3333/messages/${userId}`)
+        .then((response) => response.json())
+        .then((data) => setMessages(data))
+        .catch((error) => {
+            alert(error);
+        });
 
-    // Exemplo de requisição POST utilizando fetch:
-    const newMessage = await fetch('http://localhost:3333/message', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ title, content }),
-    })
-      .then((response) => {
-        return response.json();
-      })
-      .catch((error) => {
-        alert(error);
-      });
+        fetch(`http://localhost:3333/messages`)
+        .then((response) => response.json())
+        .then((data) => setMessages(prev => [...prev, ...data]))
+        .catch((error) => {
+            alert(error);
+        });
 
-    setMessages((prevMessage) => [...prevMessage, newMessage]); // cria uma cópia
-    setTitle('');
-    setContent('');
-  };
+    }, []);
 
-  const handleRemoveMessage = async (id: number) => {
-    // Exemplo de requisição DELETE utilizando fetch:
-    await fetch(`http://localhost:3333/message/${id}`, {
-      method: 'DELETE',
-    });
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
 
-    setMessages((prevMessageList) =>
-      prevMessageList.filter((message) => message.id !== id)
-    );
-  };
+        // Exemplo de requisição POST utilizando fetch:
+        const newMessage = await fetch('http://localhost:3333/message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, content, userId }),
+        })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            alert(error);
+        });
 
-  const handleLike = async (id: number) => {
-    const message = messages.find((message) => message.id === id);
-    if (!message || message.likesAmount === 0) {
-        return alert('não é possível colocar a quantidade de likes em valor negativo');
-    }
+        setMessages((prevMessage) => [...prevMessage, newMessage]); // cria uma cópia
+        setTitle('');
+        setContent('');
+    };
 
-    const likesAmount = await fetch(`http://localhost:3333/message/${id}/add-like`, 
-    {
-        method: 'PATCH'
-    })
-    .then((response) => {
-        return response.json();
-      })
-      .catch((error) => {
-        alert(error);
-      });
+    const handleRemoveMessage = async (id: number) => {
+        // Exemplo de requisição DELETE utilizando fetch:
+        await fetch(`http://localhost:3333/message/${id}`, {
+        method: 'DELETE',
+        });
 
-    const index = messages.findIndex((message) => message.id === id);
-    if (true) {
+        setMessages((prevMessageList) =>
+            prevMessageList.filter((message) => message.id !== id)
+        );
+    };
+
+    const handleLike = async (id: number) => {        
+        const likesAmount = await fetch(`http://localhost:3333/message/${id}/like`, 
+        {
+            method: 'PATCH'
+        })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            alert(error);
+        }); 
+
+        const index = messages.findIndex((message) => message.id === id);
         setMessages((prevMessageList) => {
-          const newMessageList = [...prevMessageList];
-          newMessageList[index].likesAmount = likesAmount;
-          return newMessageList;
+            const newMessageList = [...prevMessageList];
+            newMessageList[index].likesAmount = likesAmount;
+            return newMessageList;
+        });
+    }   
+
+    const handleDeslike = async (id: number) => {
+        const message = messages.find((message) => message.id === id);
+        if (!message || message.likesAmount === 0) {
+            return alert('não é possível colocar a quantidade de likes em valor negativo');
+        }
+
+        const likesAmount = await fetch(`http://localhost:3333/message/${id}/deslike`, 
+        {
+            method: 'PATCH'
+        })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            alert(error);
+        });
+
+        const index = messages.findIndex((message) => message.id === id);
+        setMessages((prevMessageList) => {
+            const newMessageList = [...prevMessageList];
+            newMessageList[index].likesAmount = likesAmount;
+            return newMessageList;
         });
     }
 
-}   
+    const togglePublished = async (id: number) => {
+        const message = messages.find((message) => message.id === id);
+        
+        if (!message) return alert('erro: mensagem não encontrada')
 
-  const handleBuyMessage = async (id: number) => {
-    const quantity = Number(prompt('Informe a quantidade da compra'));
-    const price = Number(prompt('Informe o valor da compra'));
-    const buyData = {
-      id,
-      quantity,
-      price,
-    };
-
-    // Exemplo de requisição PATCH utilizando fetch:
-    const newMessage = await fetch(`http://localhost:3333/message/compra`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(buyData),
-    })
-      .then((response) => {
-        return response.json();
-      })
-      .catch((error) => {
-        alert(error);
-      });
-
-    const index = messages.findIndex((message) => message.id === newMessage.id);
-    if (index !== -1) {
-      setMessages((prevMessageList) => {
-        const newMessageList = [...prevMessageList];
-        newMessageList[index] = newMessage;
-        return newMessageList;
-      });
+        await fetch(`http://localhost:3333/message/${id}/published`, 
+        {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({published: !message.published}),
+        })
+        .then((response) => {
+            return response.json();
+        })
+        .catch((error) => {
+            alert(error);
+        });
     }
-  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen w-screen">
@@ -160,13 +178,14 @@ const Mensagem = () => {
           <table className="w-full border border-gray-300">
             <thead>
               <tr>
-                <th className="border-b border-gray-300 py-2 px-4">Nome</th>
-                <th className="border-b border-gray-300 py-2 px-4">Descrição</th>
-                <th className="border-b border-gray-300 py-2 px-4">Quantidade</th>
-                <th className="border-b border-gray-300 py-2 px-4">Preço</th>
+                <th className="border-b border-gray-300 py-2 px-4">Título</th>
+                <th className="border-b border-gray-300 py-2 px-4">conteúdo</th>
+                <th className="border-b border-gray-300 py-2 px-4">Likes</th>
+                <th className="border-b border-gray-300 py-2 px-4">Publicado</th>
                 <th className="border-b border-gray-300 py-2 px-4">Remover</th>
-                <th className="border-b border-gray-300 py-2 px-4">Compra</th>
-                <th className="border-b border-gray-300 py-2 px-4">Venda</th>
+                <th className="border-b border-gray-300 py-2 px-4">Like</th>
+                <th className="border-b border-gray-300 py-2 px-4">Deslike</th>
+                <th className="border-b border-gray-300 py-2 px-4">Publicar/Esconder</th>
               </tr>
             </thead>
             <tbody>
@@ -183,10 +202,11 @@ const Mensagem = () => {
                     {message.likesAmount}
                   </td>
                   <td className="border-b border-gray-300 py-2 px-4">
-                    {message.publiched}
+                    {message.published}
                   </td>
                   <td className="border-b border-gray-300 py-2 px-4">
                     <button
+                        type='button'
                       onClick={() => handleRemoveMessage(message.id)}
                       className="flex items-center justify-center p-2 text-red-500 hover:text-red-700"
                     >
@@ -195,15 +215,28 @@ const Mensagem = () => {
                   </td>
                   <td className="border-b border-gray-300 py-2 px-4">
                     <button
+                        type='button'
                       onClick={() => handleLike(message.id)}
                       className="flex items-center justify-center p-2 text-green-500 hover:text-green-700"
                     >
-                      <MdShoppingCart size={20} />
+                      <AiFillLike size={20} />
                     </button>
                   </td>
                   <td className="border-b border-gray-300 py-2 px-4">
-                    <button className="flex items-center justify-center p-2 text-green-500 hover:text-green-700">
-                      <MdLocalMall size={20} />
+                    <button
+                        type='button'
+                      onClick={() => handleDeslike(message.id)}
+                      className="flex items-center justify-center p-2 text-green-500 hover:text-green-700"
+                    >
+                      <AiFillDislike size={20} />
+                    </button>
+                  </td>
+                  <td className="border-b border-gray-300 py-2 px-4">
+                    <button 
+                        type='button'
+                        onClick={() => togglePublished(message.id)}
+                        className="flex items-center justify-center p-2 text-green-500 hover:text-green-700">
+                      <FiUpload size={20} />
                     </button>
                   </td>
                 </tr>

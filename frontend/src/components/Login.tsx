@@ -23,7 +23,7 @@ const Login = () => {
 
         if (response.length >= 1) {
           // Navega para a rota '/produto'
-            navigate('/produto', {state: {userId: response[0].id}}); 
+            navigate('/message', {state: {userId: response[0].id}}); 
         } else {
           alert('Usuário/senha inválidos');
         }
